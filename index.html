@@ -1,77 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Pinyin Table</title>
+<meta charset="utf-8">
+<title>Пиньин / Pinyin</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #fafafa;
-    padding: 20px;
-  }
-  .table-container {
-    display: grid;
-    grid-template-columns: repeat(6, auto);
-    gap: 6px;
-  }
-  .cell {
-    padding: 10px 14px;
-    background: #eef2ff;
-    border-radius: 8px;
-    text-align: center;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  .cell:hover {
-    background: #dce4ff;
-    transform: scale(1.04);
-  }
-  .empty {
-    background: transparent;
-    cursor: default;
-  }
+  :root{--paper:#f3e6c9;--frame:#8b6b40;--cell:#fff8ed;--accent:#e6d1aa}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial; background:var(--paper); margin:0; padding:24px; color:#382815}
+  .wrap{max-width:1200px;margin:0 auto}
+  h1{font-size:28px;text-align:center;margin:8px 0 18px}
+  .sheet{border-radius:14px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,0.12); background:linear-gradient(180deg,rgba(255,255,255,0.35),rgba(255,255,240,0.6)); padding:18px;}
+  /* parchment texture using local file provided by user */
+  .parchment{background-image:url('/mnt/data/pinyin.png'); background-size:cover; background-repeat:no-repeat; background-position:center; padding:26px; border-radius:12px}
+  table{width:100%; border-collapse:collapse; table-layout:fixed}
+  th,td{border:1px solid rgba(139,107,64,0.25); padding:10px; text-align:center; font-size:14px}
+  th{background:rgba(139,107,64,0.12); color:#2e1f11; font-weight:600}
+  td.cell{background:var(--cell); border-radius:6px; cursor:pointer; transition:transform .12s, background .12s}
+  td.cell:hover{transform:translateY(-4px); background:#fff0d9}
+  td.empty{background:transparent; cursor:default; color:rgba(50,30,10,0.5)}
+  .note{font-size:13px; color:#5a4124; margin:10px 0 0}
+  @media(max-width:900px){table{font-size:12px} td,th{padding:8px}}
 </style>
 </head>
 <body>
-<h2>Pinyin Table with Audio</h2>
-<div class="table-container" id="pinyinTable"></div>
+<div class="wrap">
+  <h1>Пиньин / Pinyin</h1>
+  <div class="sheet parchment">
+    <p class="note">Click a cell to play the audio. Audio files must be in <code>pinyin/</code> folder and named exactly like the syllable, for example <code>ba.mp3</code>, <code>zhuang.mp3</code>.</p>
+
+    <div style="overflow:auto;">
+      <table id="pinyinTable" aria-label="Pinyin table"></table>
+    </div>
+  </div>
+</div>
+
 <script>
-  const pinyinList = [
-    "ba","bai","bao","ban","bang","beng","bi","bian","biao","bie","bin","bing",
-    "pa","pai","pao","pan","pang","peng","pi","pian","piao","pie","pin","ping",
-    "ma","mai","mao","man","mang","meng","mi","mian","miao","mie","min","ming",
-    "fa","fan","fang","feng",
-    "da","dai","dao","dan","dang","deng","di","dian","diao","die","ding",
-    "ta","tai","tao","tan","tang","teng","ti","tian","tiao","tie","ting",
-    "na","nai","nao","nan","nang","neng","ni","nian","niao","nie","nin","ning",
-    "la","lai","lao","lan","lang","leng","li","lian","liao","lie","lin","ling",
-    "za","zai","zao","zan","zang","zeng","zi","zian","ziao","zie","zing",
-    "ca","cai","cao","can","cang","ceng","ci","cian","ciao","cie","cing",
-    "sa","sai","sao","san","sang","seng","si","sian","siao","sie","sing",
-    "zha","zhai","zhao","zhan","zhang","zheng","zhi","zhu","zhuan","zhun","zhuang",
-    "cha","chai","chao","chan","chang","cheng","chi","chu","chuan","chun","chuang",
-    "sha","shai","shao","shan","shang","sheng","shi","shu","shuan","shun","shuang",
-    "ra","ran","rang","ren","rong","ru","rua","rui","run",
-    "jao","jiao","jie","jin","jing","qia","qiao","qin","qing","xian","xiang","xing",
-    "ga","gai","gao","gan","gang","geng","ge","gen","gong","gu","gua","guan","guang",
-    "ka","kai","kao","kan","kang","keng","ke","ken","kong","ku","kua","kuan","kuang",
-    "ha","hai","hao","han","hang","heng","he","hen","hong","hu","hua","huan","huang"
-  ];
+// Initials and finals (full set with y and w). Table will build all combinations as init+final.
+const initials = ["b","p","m","f","d","t","n","l","g","k","h","j","q","x","zh","ch","sh","r","z","c","s","y","w"];
+const finals = ["a","o","e","ai","ei","ao","ou","an","en","ang","eng","ong",
+                "i","ia","iao","ie","iao","ian","iang","in","ing","iong",
+                "u","ua","uo","uai","ui","uan","un","uang","ong",
+                "ü","üe","üan","ün"];
 
-  const table = document.getElementById("pinyinTable");
-
-  pinyinList.forEach(pinyin => {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    cell.textContent = pinyin;
-    cell.onclick = () => playSound(pinyin);
-    table.appendChild(cell);
-  });
-
-  function playSound(name) {
-    const audio = new Audio(`pinyin/${name}.mp3`);
-    audio.play();
+// Utility: build the syllable string (handle ü representation: use 'ü' char in filename as well)
+function makeSyllable(init, fin){
+  // special cases: y and w act as semi-initials: in pinyin, 'yi'='i', 'wu'='u', 'yu'='ü'
+  if(init === 'y'){
+    if(fin === 'i') return 'yi';
+    if(fin.startsWith('i')) return 'y' + fin; // ya, yao etc
+    if(fin === 'ü' || fin.startsWith('ü')) return 'yu' + fin.slice(1);
   }
+  if(init === 'w'){
+    if(fin === 'u') return 'wu';
+    if(fin.startsWith('u')) return 'w' + fin; // wa, wo, wai
+  }
+  // j q x cannot combine with 'u' (they combine with ü written as 'u' without diaeresis in pinyin files sometimes) — we'll keep simple string concat
+  return init + fin;
+}
+
+// Build table header
+function buildTable(){
+  const table = document.getElementById('pinyinTable');
+  let html = '<tr><th></th>';
+  finals.forEach(f => html += `<th>${f}</th>`);
+  html += '</tr>';
+
+  initials.forEach(init =>{
+    html += `<tr><th>${init}</th>`;
+    finals.forEach(fin =>{
+      const syl = makeSyllable(init, fin);
+      // placeholder cell — we will test for audio file existence and enable/disable accordingly
+      html += `<td data-syl="${syl}" class="loading">${syl}</td>`;
+    });
+    html += '</tr>';
+  });
+  table.innerHTML = html;
+  checkAudioFiles();
+}
+
+// Check audio file existence. Try HEAD first, fallback to attempting to load via Audio.
+async function checkAudioFiles(){
+  const cells = Array.from(document.querySelectorAll('td[data-syl]'));
+  for(const cell of cells){
+    const syl = cell.dataset.syl;
+    const url = `pinyin/${syl}.mp3`;
+    try{
+      // use fetch HEAD to check quickly
+      const res = await fetch(url, {method:'HEAD'});
+      if(res.ok){
+        enableCell(cell, url);
+      } else {
+        // not found -> mark empty
+        markEmpty(cell);
+      }
+    }catch(e){
+      // fallback: try to create Audio and attempt to load
+      const audio = new Audio();
+      audio.src = url;
+      audio.preload = 'metadata';
+      let loaded = false;
+      audio.addEventListener('loadedmetadata', ()=>{ loaded = true; enableCell(cell,url); });
+      audio.addEventListener('error', ()=>{ if(!loaded) markEmpty(cell); });
+      // try to load
+      try{ audio.load(); }
+      catch(err){ markEmpty(cell); }
+    }
+  }
+}
+
+function enableCell(cell, url){
+  cell.className = 'cell';
+  cell.title = 'Play ' + cell.dataset.syl;
+  cell.onclick = ()=>{ const a = new Audio(url); a.play().catch(()=>{}); };
+}
+function markEmpty(cell){
+  cell.className = 'empty';
+  cell.textContent = '';
+  cell.removeAttribute('onclick');
+}
+
+buildTable();
 </script>
 </body>
 </html>

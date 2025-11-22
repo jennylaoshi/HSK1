@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Pinyin Table</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #fafafa;
+    padding: 20px;
+  }
+  .table-container {
+    display: grid;
+    grid-template-columns: repeat(6, auto);
+    gap: 6px;
+  }
+  .cell {
+    padding: 10px 14px;
+    background: #eef2ff;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .cell:hover {
+    background: #dce4ff;
+    transform: scale(1.04);
+  }
+  .empty {
+    background: transparent;
+    cursor: default;
+  }
+</style>
+</head>
+<body>
+<h2>Pinyin Table with Audio</h2>
+<div class="table-container" id="pinyinTable"></div>
+<script>
+  const pinyinList = [
+    "ba","bai","bao","ban","bang","beng","bi","bian","biao","bie","bin","bing",
+    "pa","pai","pao","pan","pang","peng","pi","pian","piao","pie","pin","ping",
+    "ma","mai","mao","man","mang","meng","mi","mian","miao","mie","min","ming",
+    "fa","fan","fang","feng",
+    "da","dai","dao","dan","dang","deng","di","dian","diao","die","ding",
+    "ta","tai","tao","tan","tang","teng","ti","tian","tiao","tie","ting",
+    "na","nai","nao","nan","nang","neng","ni","nian","niao","nie","nin","ning",
+    "la","lai","lao","lan","lang","leng","li","lian","liao","lie","lin","ling",
+    "za","zai","zao","zan","zang","zeng","zi","zian","ziao","zie","zing",
+    "ca","cai","cao","can","cang","ceng","ci","cian","ciao","cie","cing",
+    "sa","sai","sao","san","sang","seng","si","sian","siao","sie","sing",
+    "zha","zhai","zhao","zhan","zhang","zheng","zhi","zhu","zhuan","zhun","zhuang",
+    "cha","chai","chao","chan","chang","cheng","chi","chu","chuan","chun","chuang",
+    "sha","shai","shao","shan","shang","sheng","shi","shu","shuan","shun","shuang",
+    "ra","ran","rang","ren","rong","ru","rua","rui","run",
+    "jao","jiao","jie","jin","jing","qia","qiao","qin","qing","xian","xiang","xing",
+    "ga","gai","gao","gan","gang","geng","ge","gen","gong","gu","gua","guan","guang",
+    "ka","kai","kao","kan","kang","keng","ke","ken","kong","ku","kua","kuan","kuang",
+    "ha","hai","hao","han","hang","heng","he","hen","hong","hu","hua","huan","huang"
+  ];
+
+  const table = document.getElementById("pinyinTable");
+
+  pinyinList.forEach(pinyin => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.textContent = pinyin;
+    cell.onclick = () => playSound(pinyin);
+    table.appendChild(cell);
+  });
+
+  function playSound(name) {
+    const audio = new Audio(`pinyin/${name}.mp3`);
+    audio.play();
+  }
+</script>
+</body>
+</html>
